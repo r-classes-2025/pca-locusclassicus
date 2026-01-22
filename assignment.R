@@ -2,49 +2,60 @@
 library(friends)
 library(tidyverse)
 library(tidytext)
-library(factoextra) 
-
+library(factoextra)
 
 # 1. отберите 6 главных персонажей (по количеству реплик)
 # сохраните как символьный вектор
-top_speakers <- friends |> 
-  # ваш код здесь
-  
-# 2. отфильтруйте топ-спикеров, 
+top_speakers <- count(friends, speaker, sort = TRUE)[1:6, "speaker"][[1]]
+
+# 2. отфильтруйте топ-спикеров,
 # токенизируйте их реплики, удалите из них цифры
 # столбец с токенами должен называться word
 # оставьте только столбцы speaker, word
-friends_tokens <- friends |> 
-  # ваш код здесь
+friends_tokens <- friends |>
+  filter(speaker %in% top_speakers) |>
+  unnest_tokens(word, text) |>
+  mutate(word = str_remove_all(word, "\\d+")) |>
+  filter(word != "") |>
+  select(speaker, word)
 
 # 3. отберите по 500 самых частотных слов для каждого персонажа
 # посчитайте относительные частотности для слов
 friends_tf <- friends_tokens |>
-  # ваш код здесь
+  count(speaker, word) |>
+  group_by(speaker) |>
+  mutate(tf = n / sum(n)) |>
+  slice_max(n, n = 500, with_ties = FALSE) |>
+  ungroup() |>
+  select(speaker, word, tf)
 
-# 4. преобразуйте в широкий формат; 
-# столбец c именем спикера превратите в имя ряда, используя подходящую функцию 
-friends_tf_wide <- friends_tf |> 
-  # ваш код здесь
+# 4. преобразуйте в широкий формат;
+# столбец c именем спикера превратите в имя ряда, используя подходящую функцию
+friends_tf_wide <- friends_tf |>
+  pivot_wider(names_from = word, values_from = tf, values_fill = 0) |>
+  column_to_rownames("speaker")
 
 # 5. установите зерно 123
 # проведите кластеризацию k-means (k = 3) на относительных значениях частотности (nstart = 20)
 # используйте scale()
-
-# ваш код здесь
-km.out <- # ваш код здесь
-
+set.seed(123)
+km.out <- kmeans(scale(friends_tf_wide), centers = 3, nstart = 20)
 
 # 6. примените к матрице метод главных компонент (prcomp)
 # центрируйте и стандартизируйте, использовав аргументы функции
-pca_fit <- # ваш код здесь
+pca_fit <- prcomp(friends_tf_wide, center = TRUE, scale. = TRUE)
 
 # 7. Покажите наблюдения и переменные вместе (биплот)
 # в качестве геома используйте текст (=имя персонажа)
 # цветом закодируйте кластер, выделенный при помощи k-means
 # отберите 20 наиболее значимых переменных (по косинусу, см. документацию к функции)
 # сохраните график как переменную q
-
-q <- # ваш код здесь
-
-
+q <- fviz_pca_biplot(
+  pca_fit,
+  geom = c("text"),
+  habillage = as.factor(km.out$cluster),
+  select.var = list(cos2 = 20),
+  repel = FALSE,
+  ggtheme = theme_minimal()
+) +
+  theme(legend.position = "none")
