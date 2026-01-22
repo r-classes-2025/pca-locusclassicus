@@ -6,7 +6,9 @@ library(factoextra)
 
 # 1. отберите 6 главных персонажей (по количеству реплик)
 # сохраните как символьный вектор
-top_speakers <- count(friends, speaker, sort = TRUE)[1:6, "speaker"][[1]]
+top_speakers <- count(friends, speaker, sort = TRUE) |> 
+  slice_head(n = 6) |> 
+  pull(speaker)
 
 # 2. отфильтруйте топ-спикеров,
 # токенизируйте их реплики, удалите из них цифры
@@ -25,6 +27,7 @@ friends_tf <- friends_tokens |>
   count(speaker, word) |>
   group_by(speaker) |>
   mutate(tf = n / sum(n)) |>
+  arrange(-n) |> 
   slice_head(n = 500) |>
   ungroup() |>
   select(speaker, word, tf)
