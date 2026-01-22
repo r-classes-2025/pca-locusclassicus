@@ -1,6 +1,6 @@
 # установите и загрузите пакеты
 library(friends)
-library(tidyverse)
+library(tidyverse) 
 library(tidytext)
 library(factoextra)
 
